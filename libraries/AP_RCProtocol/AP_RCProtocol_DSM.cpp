@@ -21,7 +21,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-// #define DSM_DEBUG
+#define DSM_DEBUG
 #ifdef DSM_DEBUG
 # define debug(fmt, args...)	printf(fmt "\n", ##args)
 #else
@@ -77,7 +77,7 @@ bool AP_RCProtocol_DSM::dsm_decode_channel(uint16_t raw, unsigned shift, unsigne
     uint16_t data_mask = (1 << shift) - 1;
     *value = raw & data_mask;
 
-    //debug("DSM: %d 0x%04x -> %d %d", shift, raw, *channel, *value);
+    debug("DSM: %d 0x%04x -> %d %d", shift, raw, *channel, *value);
 
     return true;
 }
@@ -95,6 +95,7 @@ void AP_RCProtocol_DSM::dsm_guess_format(bool reset, const uint8_t dsm_frame[16]
         cs11 = 0;
         samples = 0;
         channel_shift = 0;
+        debug("DSM: reset = true\n");
         return;
     }
 
@@ -119,6 +120,7 @@ void AP_RCProtocol_DSM::dsm_guess_format(bool reset, const uint8_t dsm_frame[16]
 
     /* wait until we have seen plenty of frames - 5 should normally be enough */
     if (samples++ < 5) {
+        debug("DSM: samples++ < 5\n");
         return;
     }
 
@@ -187,7 +189,8 @@ bool AP_RCProtocol_DSM::dsm_decode(uint32_t frame_time_ms, const uint8_t dsm_fra
      * format guessing heuristic.
      */
     if (((frame_time_ms - last_frame_time_ms) > 200U) && (channel_shift != 0)) {
-        dsm_guess_format(true, dsm_frame);
+        debug("DSM: lost signal > 200ms \n");
+	dsm_guess_format(true, dsm_frame);
     }
 
     /* we have received something we think is a dsm_frame */
@@ -195,6 +198,7 @@ bool AP_RCProtocol_DSM::dsm_decode(uint32_t frame_time_ms, const uint8_t dsm_fra
 
     /* if we don't know the dsm_frame format, update the guessing state machine */
     if (channel_shift == 0) {
+        debug("DSM: channel_shift = 0\n");
         dsm_guess_format(false, dsm_frame);
         return false;
     }
@@ -393,11 +397,16 @@ bool AP_RCProtocol_DSM::dsm_parse_byte(uint32_t frame_time_ms, uint8_t b, uint16
     }
 
 #ifdef DSM_DEBUG
-    debug("dsm state: %s%s, count: %d, val: %02x\n",
+/*   
+ debug("dsm state ad: %s%s, count: %d, val: %02x, framems: %lu, lastms: %lu \n",
           (dsm_decode_state == DSM_DECODE_STATE_DESYNC) ? "DSM_DECODE_STATE_DESYNC" : "",
           (dsm_decode_state == DSM_DECODE_STATE_SYNC) ? "DSM_DECODE_STATE_SYNC" : "",
           byte_input.ofs,
-          (unsigned)b);
+          (unsigned)b,
+	  (unsigned long)frame_time_ms,
+          (unsigned long)last_rx_time_ms)	  
+		;
+*/
 #endif
 
     switch (dsm_decode_state) {
@@ -415,13 +424,24 @@ bool AP_RCProtocol_DSM::dsm_parse_byte(uint32_t frame_time_ms, uint8_t b, uint16
         if ((frame_time_ms - last_rx_time_ms) >= 5 && byte_input.ofs > 0) {
             byte_input.ofs = 0;
             dsm_decode_state = DSM_DECODE_STATE_DESYNC;
+	    //debug("DSM: DSM_DECODE_STATE_DESYNC\n");
+             debug("DSM: (frame_time_ms - last_rx_time_ms) >= 5 && byte_input.ofs > 0  state ad: %s%s, count: %d, val: %02x, framems: %lu, lastms: %lu \n",
+           (dsm_decode_state == DSM_DECODE_STATE_DESYNC) ? "DSM_DECODE_STATE_DES$
+          (dsm_decode_state == DSM_DECODE_STATE_SYNC) ? "DSM_DECODE_STATE_SYNC"$
+          byte_input.ofs,
+          (unsigned)b,
+          (unsigned long)frame_time_ms,
+          (unsigned long)last_rx_time_ms)
+                ;
+
             break;
         }
         byte_input.buf[byte_input.ofs++] = b;
 
         /* decode whatever we got and expect */
         if (byte_input.ofs < DSM_FRAME_SIZE) {
-            break;
+            debug("DSM: byte_input.ofs < DSM_FRAME_SIZE\n");
+	     break;
         }
 
         /*
@@ -436,6 +456,7 @@ bool AP_RCProtocol_DSM::dsm_parse_byte(uint32_t frame_time_ms, uint8_t b, uint16
         /* if decoding failed, set proto to desync */
         if (decode_ret == false) {
             dsm_decode_state = DSM_DECODE_STATE_DESYNC;
+            debug("DSM: dsm_decode returned false\n");
         }
         break;
     }
