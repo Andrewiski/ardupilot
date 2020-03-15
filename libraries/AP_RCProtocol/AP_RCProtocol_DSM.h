@@ -41,7 +41,7 @@ private:
                     uint16_t *values, uint16_t *num_values, uint16_t max_values);
 
     /**< Channel resolution, 0=unknown, 10=10 bit, 11=11 bit */
-    uint8_t channel_shift;
+    uint8_t channel_shift = 0;
 
     // format guessing state
     uint32_t	cs10;

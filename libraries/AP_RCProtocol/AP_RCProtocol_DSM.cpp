@@ -190,7 +190,7 @@ bool AP_RCProtocol_DSM::dsm_decode(uint32_t frame_time_ms, const uint8_t dsm_fra
      */
     if (((frame_time_ms - last_frame_time_ms) > 200U) && (channel_shift != 0)) {
         debug("DSM: lost signal > 200ms \n");
-	dsm_guess_format(true, dsm_frame);
+	dsm_guess_format(false, dsm_frame);
     }
 
     /* we have received something we think is a dsm_frame */
@@ -221,11 +221,13 @@ bool AP_RCProtocol_DSM::dsm_decode(uint32_t frame_time_ms, const uint8_t dsm_fra
         unsigned channel, value;
 
         if (!dsm_decode_channel(raw, channel_shift, &channel, &value)) {
+            debug("DSM: dsm_decode_channel=false\n");
             continue;
         }
 
         /* ignore channels out of range */
         if (channel >= max_values) {
+	    debug("DSM: out of range\n");
             continue;
         }
 
@@ -425,22 +427,21 @@ bool AP_RCProtocol_DSM::dsm_parse_byte(uint32_t frame_time_ms, uint8_t b, uint16
             byte_input.ofs = 0;
             dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 	    //debug("DSM: DSM_DECODE_STATE_DESYNC\n");
-             debug("DSM: (frame_time_ms - last_rx_time_ms) >= 5 && byte_input.ofs > 0  state ad: %s%s, count: %d, val: %02x, framems: %lu, lastms: %lu \n",
-           (dsm_decode_state == DSM_DECODE_STATE_DESYNC) ? "DSM_DECODE_STATE_DES$
-          (dsm_decode_state == DSM_DECODE_STATE_SYNC) ? "DSM_DECODE_STATE_SYNC"$
+            debug("dsm state ad: %s%s, count: %d, val: %02x, framems: %lu, lastms: %lu \n",
+          (dsm_decode_state == DSM_DECODE_STATE_DESYNC) ? "DSM_DECODE_STATE_DESYNC" : "",
+          (dsm_decode_state == DSM_DECODE_STATE_SYNC) ? "DSM_DECODE_STATE_SYNC" : "",
           byte_input.ofs,
           (unsigned)b,
-          (unsigned long)frame_time_ms,
-          (unsigned long)last_rx_time_ms)
-                ;
-
+	  (unsigned long)frame_time_ms,
+          (unsigned long)last_rx_time_ms)	  
+		;
             break;
         }
         byte_input.buf[byte_input.ofs++] = b;
 
         /* decode whatever we got and expect */
         if (byte_input.ofs < DSM_FRAME_SIZE) {
-            debug("DSM: byte_input.ofs < DSM_FRAME_SIZE\n");
+            //debug("DSM: byte_input.ofs < DSM_FRAME_SIZE %d\n", byte_input.ofs);
 	     break;
         }
 

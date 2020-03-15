@@ -28,7 +28,7 @@ AP_BattMonitor_Analog::read()
 
     // get voltage
     _state.voltage = _volt_pin_analog_source->voltage_average() * _params._volt_multiplier;
-
+    //printf("BattMonitor_Analog Volts: %2.1f\n", _state.voltage);
     // read current
     if (has_current()) {
         // calculate time since last current read
